@@ -6,26 +6,24 @@ on:
       - main
 
 jobs:
-  build-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+    - uses: actions/checkout@v3
 
-    - name: Login to DockerHub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USER }}
-        password: ${{ secrets.DOCKER_PASS }}
+    - name: Install kubectl
+      run: |
+        curl -LO "https://dl.k8s.io/release/v1.30.0/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
 
-    - name: Build image
-      run: docker build -t ${{ secrets.DOCKER_USER }}/devops-app:latest .
+    - name: Setup kubeconfig
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
 
-    - name: Push image
-      run: docker push ${{ secrets.DOCKER_USER }}/devops-app:latest
-
-    - name: Deploy to Kubernetes
+    - name: Deploy
       run: |
         kubectl apply -f deployment.yaml
         kubectl apply -f service.yaml
